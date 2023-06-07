@@ -527,7 +527,8 @@ void Fluid::outputSurface(double tau) {
     //----- Cornelius stuff
     double QCube[2][2][2][2][7];
     double piSquare[2][2][2][10], PiSquare[2][2][2];
-        double dbetaSq [2][2][2][4][4];
+    double dbetaSq [2][2][2][4][4];
+    double dmuSq [2][2][2][4][4];
     for (int jx = 0; jx < 2; jx++)
      for (int jy = 0; jy < 2; jy++)
       for (int jz = 0; jz < 2; jz++) {
@@ -543,9 +544,13 @@ void Fluid::outputSurface(double tau) {
        for (int ii = 0; ii < 4; ii++)
         for (int jj = 0; jj <= ii; jj++)
          piSquare[jx][jy][jz][index44(ii, jj)] = cc->getpi(ii, jj);
-              for (int i=0; i<4; i++)
-              for (int j=0; j<4; j++)
-               dbetaSq[jx][jy][jz][i][j] = cc->getDbeta(i,j);
+              for (int i=0; i<4; i++){
+                for (int j=0; j<4; j++){
+                  dbetaSq[jx][jy][jz][i][j] = cc->getDbeta(i,j);
+                  dmuSq[jx][jy][jz][i][j] = cc->getDmu(i,j);
+                }
+              }
+
        PiSquare[jx][jy][jz] = cc->getPi();
       }
     cornelius->find_surface_4d(ccube);
@@ -595,6 +600,7 @@ void Fluid::outputSurface(double tau) {
      }
      if (eC > ecrit * 2.0 || eC < ecrit * 0.5) nsusp++;
           double dbetaC [4][4] = {0.};
+          double dmuC [4][4] = {0.};
      for (int jx = 0; jx < 2; jx++)
       for (int jy = 0; jy < 2; jy++)
        for (int jz = 0; jz < 2; jz++) {
@@ -602,9 +608,12 @@ void Fluid::outputSurface(double tau) {
          piC[ii] +=
              piSquare[jx][jy][jz][ii] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
         PiC += PiSquare[jx][jy][jz] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
-                for(int i=0; i<4; i++)
-                for(int j=0; j<4; j++)
-                 dbetaC[i][j] += dbetaSq[jx][jy][jz][i][j]*wCenX[jx]*wCenY[jy]*wCenZ[jz];
+                for(int i=0; i<4; i++) {
+                  for(int j=0; j<4; j++) {
+                    dbetaC[i][j] += dbetaSq[jx][jy][jz][i][j]*wCenX[jx]*wCenY[jy]*wCenZ[jz];
+                    dmuC[i][j] += dmuSq[jx][jy][jz][i][j]*wCenX[jx]*wCenY[jy]*wCenZ[jz];
+                  }
+                }
        }
      double v2C = vxC * vxC + vyC * vyC + vzC * vzC;
      if (v2C > 1.) {
@@ -673,15 +682,25 @@ void Fluid::outputSurface(double tau) {
            {-sh, 0., 0., ch}}; // Jacobian to transform covariant (lower index)
            // vector from Milne to Cartesian coordinate system
           double dbetaCart [4][4] = {0};
-          for(int i=0; i<4; i++)
-          for(int j=0; j<4; j++)
-          for(int k=0; k<4; k++)
-          for(int l=0; l<4; l++)
-           dbetaCart [i][j] += jacob[i][k] * jacob[j][l] * dbetaC[k][l]
+          double dmuCart [4][4] = {0};
+          for(int i=0; i<4; i++) {
+            for(int j=0; j<4; j++) {
+              for(int k=0; k<4; k++) {
+                for(int l=0; l<4; l++) {
+                  dbetaCart [i][j] += jacob[i][k] * jacob[j][l] * dbetaC[k][l]
                                * gmumu[l]; // which equals to d_i beta_j
+                  dmuCart [i][j] += jacob[i][k] * jacob[j][l] * dmuC[k][l]
+                               * gmumu[l];
+                }
+              }
+            }
+          }
           for(int i=0; i<4; i++)
           for(int j=0; j<4; j++)
            output::fbeta << setw(24) << dbetaCart[i][j];
+          for(int i=0; i<4; i++)
+          for(int j=0; j<4; j++)
+           output::fbeta << setw(24) << dmuCart[i][j];
           output::fbeta << endl;
      double dEsurfVisc = 0.;
      for (int i = 0; i < 4; i++)

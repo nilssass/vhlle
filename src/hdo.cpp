@@ -690,6 +690,7 @@ void Hydro::ISformal() {
      // now calculating viscous terms in NS limit
      NSquant(ix, iy, iz, piNS, PiNS, dmu, dbeta, du);
      c->setDbeta(dbeta);
+     c->setDmu(dmu);
      eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
      double etaS, zetaS;
      trcoeff->getEta(e, T, etaS, zetaS);
