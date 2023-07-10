@@ -39,6 +39,7 @@
 #include "eoHadron.h"
 #include "eoSmash.h"
 #include "trancoeff.h"
+#include "interpol.h"
 
 using namespace std;
 
